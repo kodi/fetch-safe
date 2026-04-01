@@ -1,6 +1,6 @@
 {
     "name": "fetch-safe",
-    "version": "0.1.4",
+    "version": "0.1.5",
     "description": "Go/Rust-style HTTP client with tuple error handling for TypeScript",
     "type": "module",
     "main": "dist/index.mjs",
