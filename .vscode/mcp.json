@@ -1,0 +1,10 @@
+{
+	"servers": {
+		"zikkaron": {
+			"type": "stdio",
+			"command": "zikkaron",
+			"args": []
+		}
+	},
+	"inputs": []
+}

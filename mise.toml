@@ -1,0 +1,20 @@
+[tools]
+node = "24"
+bun = "latest"
+pnpm = "10"
+
+[tasks.typecheck]
+description = "Type check with tsgo"
+run = "pnpm check"
+
+[tasks.lint]
+description = "Lint with oxlint"
+run = "pnpm lint"
+
+[tasks.format-check]
+description = "Check formatting with oxfmt"
+run = "pnpm fmt:check"
+
+[tasks.local-ci]
+description = "Run typecheck, lint, and format-check in parallel"
+depends = ["typecheck", "lint", "format-check"]

@@ -1,0 +1,57 @@
+{
+  "hooks": {
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/dragan.bajcic/data/fffd/http-result/.claude/hooks/pre-compact-drain.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/Users/dragan.bajcic/data/fffd/http-result/.claude/hooks/session-start-context.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/dragan.bajcic/data/fffd/http-result/.claude/hooks/post-compact-rehydrate.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/Users/dragan.bajcic/data/fffd/http-result/.claude/hooks/post-tool-capture.py\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/Users/dragan.bajcic/data/fffd/http-result/.claude/hooks/prompt-recall.py\""
+          }
+        ]
+      }
+    ]
+  }
+}

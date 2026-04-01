@@ -1,0 +1,45 @@
+{
+    "name": "fetch-ok",
+    "version": "0.1.0",
+    "description": "Go/Rust-style HTTP client with tuple error handling for TypeScript",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsgo --project tsconfig.build.json",
+        "check": "tsgo --noEmit",
+        "lint": "oxlint",
+        "fmt": "oxfmt --write src tests",
+        "fmt:check": "oxfmt --check src tests",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "prepublishOnly": "pnpm run build"
+    },
+    "keywords": [
+        "http",
+        "fetch",
+        "result",
+        "tuple",
+        "error-handling",
+        "golang",
+        "rust",
+        "typescript"
+    ],
+    "license": "MIT",
+    "devDependencies": {
+        "@typescript/native-preview": "latest",
+        "oxlint": "latest",
+        "oxfmt": "latest",
+        "typescript": "latest",
+        "vitest": "latest"
+    }
+}
