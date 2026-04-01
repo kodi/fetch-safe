@@ -168,7 +168,7 @@ pnpm test             # vitest
 pnpm lint             # oxlint
 pnpm fmt              # oxfmt
 pnpm check            # tsgo type check
-pnpm build            # tsgo emit
+pnpm build            # tsdown package build
 ```
 
 ### Mise Tasks
