@@ -1,5 +1,8 @@
 # fetch-safe
 
+[![npm version](https://img.shields.io/npm/v/fetch-safe)](https://www.npmjs.com/package/fetch-safe)
+[![Publish to npm](https://github.com/kodi/fetch-safe/actions/workflows/publish.yml/badge.svg)](https://github.com/kodi/fetch-safe/actions/workflows/publish.yml)
+
 Go/Rust-style HTTP client for TypeScript. No try/catch, just tuples.
 
 ```ts
