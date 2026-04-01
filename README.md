@@ -1,4 +1,4 @@
-# http-result
+# fetch-ok
 
 Go/Rust-style HTTP client for TypeScript. No try/catch, just tuples.
 
@@ -14,16 +14,16 @@ console.log(user.name);
 ## Install
 
 ```bash
-pnpm add http-result
+pnpm add fetch-ok
 ```
 
 ## Result Types
 
-| Type | Shape | Description |
-| --- | --- | --- |
-| `Result<T, E>` | `[T, null] \| [null, E]` | Union — use for function return types |
-| `Ok<T>` | `[T, null]` | Success tuple — `data` is `T`, no null ambiguity |
-| `Err<E>` | `[null, E]` | Error tuple — `error` is `E`, no null ambiguity |
+| Type           | Shape                    | Description                                      |
+| -------------- | ------------------------ | ------------------------------------------------ |
+| `Result<T, E>` | `[T, null] \| [null, E]` | Union — use for function return types            |
+| `Ok<T>`        | `[T, null]`              | Success tuple — `data` is `T`, no null ambiguity |
+| `Err<E>`       | `[null, E]`              | Error tuple — `error` is `E`, no null ambiguity  |
 
 `ok()` returns `Ok<T>` and `err()` returns `Err<E>`, so destructured values are fully narrowed without `!` assertions:
 
@@ -47,20 +47,20 @@ data.name; // narrows: data is User
 
 Every method returns `Promise<Result<T, FetchError>>`.
 
-| Method | Description |
-| --- | --- |
-| `getJson<T>(url, opts?)` | GET → parsed JSON |
-| `postJson<T>(url, body?, opts?)` | POST JSON → parsed JSON |
-| `putJson<T>(url, body?, opts?)` | PUT JSON → parsed JSON |
+| Method                            | Description              |
+| --------------------------------- | ------------------------ |
+| `getJson<T>(url, opts?)`          | GET → parsed JSON        |
+| `postJson<T>(url, body?, opts?)`  | POST JSON → parsed JSON  |
+| `putJson<T>(url, body?, opts?)`   | PUT JSON → parsed JSON   |
 | `patchJson<T>(url, body?, opts?)` | PATCH JSON → parsed JSON |
-| `del<T>(url, opts?)` | DELETE → parsed JSON |
-| `getText(url, opts?)` | GET → raw string |
-| `head(url, opts?)` | HEAD → Headers |
+| `del<T>(url, opts?)`              | DELETE → parsed JSON     |
+| `getText(url, opts?)`             | GET → raw string         |
+| `head(url, opts?)`                | HEAD → Headers           |
 
 All methods are also available on the `http` namespace object:
 
 ```ts
-import { http } from "http-result";
+import { http } from "fetch-ok";
 
 const [data, err] = await http.getJson("https://api.example.com/data");
 ```
@@ -68,19 +68,20 @@ const [data, err] = await http.getJson("https://api.example.com/data");
 Or import individual functions:
 
 ```ts
-import { getJson, postJson } from "http-result";
+import { getJson, postJson } from "fetch-ok";
 ```
 
 ## Error Types
 
-| Error | When |
-| --- | --- |
-| `HttpError` | Server responded with non-2xx status. Has `.status`, `.statusText`, `.body` |
-| `NetworkError` | DNS failure, timeout, connection refused |
-| `ParseError` | Response body isn't valid JSON. Has `.body` with raw text |
+| Error             | When                                                                            |
+| ----------------- | ------------------------------------------------------------------------------- |
+| `HttpError`       | Server responded with non-2xx status. Has `.status`, `.statusText`, `.body`     |
+| `NetworkError`    | DNS failure, timeout, connection refused                                        |
+| `ParseError`      | Response body isn't valid JSON. Has `.body` with raw text                       |
+| `ValidationError` | Parsed JSON failed schema validation. Has `.issues`, `.body` (raw parsed value) |
 
 ```ts
-import { HttpError, NetworkError, ParseError } from "http-result";
+import { HttpError, NetworkError, ParseError } from "fetch-ok";
 
 const [data, err] = await getJson<User>("/api/users/1");
 
@@ -96,6 +97,45 @@ if (err) {
 }
 
 console.log(data);
+```
+
+## Schema Validation
+
+Pass a `schema` option to validate the parsed JSON at runtime. Any object with a `.parse(value)` method works — Zod, Valibot, ArkType, or a hand-rolled validator.
+
+```ts
+import { z } from "zod";
+
+const UserSchema = z.object({ id: z.number(), name: z.string() });
+
+// T is inferred from the schema — no need to pass a generic
+const [user, err] = await http.getJson("/api/users/1", { schema: UserSchema });
+
+if (err) {
+  if (err instanceof ValidationError) {
+    console.error("Schema mismatch:", err.issues);
+  }
+  return;
+}
+
+console.log(user.name); // fully typed as { id: number; name: string }
+```
+
+Works with all JSON methods: `getJson`, `postJson`, `putJson`, `patchJson`, `del`.
+
+When validation fails, a `ValidationError` is returned (not thrown). It has:
+
+- `.issues` — array of validation issues from the schema library
+- `.body` — the raw parsed JSON that failed validation
+- `.cause` — the original error thrown by `.parse()`
+
+```ts
+import { ValidationError } from "fetch-ok";
+
+if (err instanceof ValidationError) {
+  console.error(err.issues); // Zod ZodIssue[], Valibot issues, etc.
+  console.error(err.body); // the raw parsed object
+}
 ```
 
 ## Options

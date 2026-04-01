@@ -37,9 +37,10 @@
     "license": "MIT",
     "devDependencies": {
         "@typescript/native-preview": "latest",
-        "oxlint": "latest",
         "oxfmt": "latest",
+        "oxlint": "latest",
         "typescript": "latest",
-        "vitest": "latest"
+        "vitest": "latest",
+        "zod": "^4.3.6"
     }
 }

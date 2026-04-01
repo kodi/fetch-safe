@@ -67,5 +67,23 @@ export class ParseError extends Error {
   }
 }
 
+/**
+ * Schema validation error — thrown when a parsed response fails schema validation.
+ * Compatible with Zod, Valibot, ArkType, or any parser that throws on `.parse()`.
+ */
+export class ValidationError extends Error {
+  readonly issues: unknown[];
+  readonly body: unknown;
+  readonly cause: unknown;
+
+  constructor(issues: unknown[], body: unknown, cause?: unknown) {
+    super("Response failed schema validation");
+    this.name = "ValidationError";
+    this.issues = issues;
+    this.body = body;
+    this.cause = cause;
+  }
+}
+
 /** Union of all possible errors from the HTTP client */
-export type FetchError = HttpError | NetworkError | ParseError;
+export type FetchError = HttpError | NetworkError | ParseError | ValidationError;

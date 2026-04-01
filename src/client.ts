@@ -4,16 +4,35 @@ import {
   HttpError,
   NetworkError,
   ParseError,
+  ValidationError,
   ok,
   err,
 } from "./result.js";
 
-export type RequestOptions = Omit<RequestInit, "method" | "body"> & {
-  /** Request timeout in milliseconds. Default: 30_000 */
-  timeout?: number;
+/**
+ * A minimal schema interface compatible with Zod, Valibot, ArkType, and similar
+ * validation libraries. Any object with a `.parse(value) => T` method works.
+ */
+export type Schema<T> = {
+  parse(value: unknown): T;
 };
 
-export type JsonRequestOptions = RequestOptions & {
+export type RequestOptions<T = unknown> = Omit<RequestInit, "method" | "body"> & {
+  /** Request timeout in milliseconds. Default: 30_000 */
+  timeout?: number;
+  /**
+   * Optional schema for runtime response validation.
+   * When provided, the parsed JSON is validated and `T` is inferred from the schema.
+   * Compatible with Zod, Valibot, ArkType, or any object with a `.parse()` method.
+   *
+   * @example
+   * const UserSchema = z.object({ id: z.number(), name: z.string() });
+   * const [user, err] = await http.getJson("/api/users/1", { schema: UserSchema });
+   */
+  schema?: Schema<T>;
+};
+
+export type JsonRequestOptions<T = unknown> = RequestOptions<T> & {
   body?: unknown;
 };
 
@@ -52,30 +71,51 @@ async function request(
   }
 }
 
-async function parseJson<T>(response: Response): Promise<Result<T, ParseError>> {
+async function parseJson<T>(
+  response: Response,
+  schema?: Schema<T>,
+): Promise<Result<T, ParseError | ValidationError>> {
   const text = await response.text();
+  let parsed: unknown;
   try {
-    return ok(JSON.parse(text) as T);
+    parsed = JSON.parse(text);
   } catch (cause) {
     return err(new ParseError(text, cause));
   }
+
+  if (schema) {
+    try {
+      return ok(schema.parse(parsed));
+    } catch (cause) {
+      const issues =
+        cause != null &&
+        typeof cause === "object" &&
+        "issues" in cause &&
+        Array.isArray((cause as { issues: unknown[] }).issues)
+          ? (cause as { issues: unknown[] }).issues
+          : [cause];
+      return err(new ValidationError(issues, parsed, cause));
+    }
+  }
+
+  return ok(parsed as T);
 }
 
 // ── Public API ──────────────────────────────────────────────
 
 export async function getJson<T = unknown>(
   url: string,
-  options?: RequestOptions,
+  options?: RequestOptions<T>,
 ): Promise<Result<T, FetchError>> {
   const [response, fetchErr] = await request("GET", url, options);
   if (fetchErr) return err(fetchErr);
-  return parseJson<T>(response);
+  return parseJson<T>(response, options?.schema);
 }
 
 export async function postJson<T = unknown>(
   url: string,
   body?: unknown,
-  options?: RequestOptions,
+  options?: RequestOptions<T>,
 ): Promise<Result<T, FetchError>> {
   const [response, fetchErr] = await request("POST", url, {
     ...options,
@@ -83,13 +123,13 @@ export async function postJson<T = unknown>(
     body: body != null ? JSON.stringify(body) : undefined,
   });
   if (fetchErr) return err(fetchErr);
-  return parseJson<T>(response);
+  return parseJson<T>(response, options?.schema);
 }
 
 export async function putJson<T = unknown>(
   url: string,
   body?: unknown,
-  options?: RequestOptions,
+  options?: RequestOptions<T>,
 ): Promise<Result<T, FetchError>> {
   const [response, fetchErr] = await request("PUT", url, {
     ...options,
@@ -97,13 +137,13 @@ export async function putJson<T = unknown>(
     body: body != null ? JSON.stringify(body) : undefined,
   });
   if (fetchErr) return err(fetchErr);
-  return parseJson<T>(response);
+  return parseJson<T>(response, options?.schema);
 }
 
 export async function patchJson<T = unknown>(
   url: string,
   body?: unknown,
-  options?: RequestOptions,
+  options?: RequestOptions<T>,
 ): Promise<Result<T, FetchError>> {
   const [response, fetchErr] = await request("PATCH", url, {
     ...options,
@@ -111,16 +151,16 @@ export async function patchJson<T = unknown>(
     body: body != null ? JSON.stringify(body) : undefined,
   });
   if (fetchErr) return err(fetchErr);
-  return parseJson<T>(response);
+  return parseJson<T>(response, options?.schema);
 }
 
 export async function del<T = unknown>(
   url: string,
-  options?: RequestOptions,
+  options?: RequestOptions<T>,
 ): Promise<Result<T, FetchError>> {
   const [response, fetchErr] = await request("DELETE", url, options);
   if (fetchErr) return err(fetchErr);
-  return parseJson<T>(response);
+  return parseJson<T>(response, options?.schema);
 }
 
 export async function getText(

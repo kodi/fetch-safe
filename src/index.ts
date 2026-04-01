@@ -7,6 +7,7 @@ export {
   HttpError,
   NetworkError,
   ParseError,
+  ValidationError,
   ok,
   err,
 } from "./result.js";
@@ -21,6 +22,7 @@ export {
   getText,
   head,
   http,
+  type Schema,
   type RequestOptions,
   type JsonRequestOptions,
 } from "./client.js";
