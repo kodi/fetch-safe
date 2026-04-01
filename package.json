@@ -1,5 +1,5 @@
 {
-    "name": "fetch-ok",
+    "name": "fetch-safe",
     "version": "0.1.0",
     "description": "Go/Rust-style HTTP client with tuple error handling for TypeScript",
     "type": "module",

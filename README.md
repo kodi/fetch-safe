@@ -1,4 +1,4 @@
-# fetch-ok
+# fetch-safe
 
 Go/Rust-style HTTP client for TypeScript. No try/catch, just tuples.
 
@@ -14,7 +14,7 @@ console.log(user.name);
 ## Install
 
 ```bash
-pnpm add fetch-ok
+pnpm add fetch-safe
 ```
 
 ## Result Types
@@ -60,7 +60,7 @@ Every method returns `Promise<Result<T, FetchError>>`.
 All methods are also available on the `http` namespace object:
 
 ```ts
-import { http } from "fetch-ok";
+import { http } from "fetch-safe";
 
 const [data, err] = await http.getJson("https://api.example.com/data");
 ```
@@ -68,7 +68,7 @@ const [data, err] = await http.getJson("https://api.example.com/data");
 Or import individual functions:
 
 ```ts
-import { getJson, postJson } from "fetch-ok";
+import { getJson, postJson } from "fetch-safe";
 ```
 
 ## Error Types
@@ -81,7 +81,7 @@ import { getJson, postJson } from "fetch-ok";
 | `ValidationError` | Parsed JSON failed schema validation. Has `.issues`, `.body` (raw parsed value) |
 
 ```ts
-import { HttpError, NetworkError, ParseError } from "fetch-ok";
+import { HttpError, NetworkError, ParseError } from "fetch-safe";
 
 const [data, err] = await getJson<User>("/api/users/1");
 
@@ -130,7 +130,7 @@ When validation fails, a `ValidationError` is returned (not thrown). It has:
 - `.cause` — the original error thrown by `.parse()`
 
 ```ts
-import { ValidationError } from "fetch-ok";
+import { ValidationError } from "fetch-safe";
 
 if (err instanceof ValidationError) {
   console.error(err.issues); // Zod ZodIssue[], Valibot issues, etc.

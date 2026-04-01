@@ -46,7 +46,7 @@ jobs:
         run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Show version
-        run: echo "Publishing fetch-ok@${{ steps.pkg.outputs.version }}"
+        run: echo "Publishing fetch-safe@${{ steps.pkg.outputs.version }}"
 
       - name: Publish to npm (trusted publishing)
         if: ${{ inputs.dry_run == 'false' }}
