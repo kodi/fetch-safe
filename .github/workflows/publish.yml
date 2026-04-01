@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # required for npm trusted publishing (OIDC)
+      id-token: write # required for npm provenance (OIDC)
 
     steps:
       - name: Checkout
@@ -27,9 +27,10 @@ jobs:
       - name: Install mise
         uses: jdx/mise-action@v2
 
-      - name: Setup Node (for npm OIDC auth)
+      - name: Setup Node (configures npm auth + registry)
         uses: actions/setup-node@v4
         with:
+          node-version: "22"
           registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
@@ -48,16 +49,16 @@ jobs:
       - name: Show version
         run: echo "Publishing fetch-safe@${{ steps.pkg.outputs.version }}"
 
-      - name: Publish to npm (trusted publishing)
+      # Use npm publish (not pnpm) — pnpm has a known bug where it doesn't
+      # forward repository.url into the provenance bundle, causing E422.
+      - name: Publish to npm
         if: ${{ inputs.dry_run == 'false' }}
-        run: pnpm publish --no-git-checks --access public
+        run: npm publish --access public --provenance
         env:
-          NPM_CONFIG_PROVENANCE: "true"
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Dry run publish
         if: ${{ inputs.dry_run == 'true' }}
-        run: pnpm publish --no-git-checks --access public --dry-run
+        run: npm publish --access public --provenance --dry-run
         env:
-          NPM_CONFIG_PROVENANCE: "true"
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
