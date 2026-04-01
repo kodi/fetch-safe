@@ -4,4 +4,5 @@ dist/
 .DS_Store
 coverage/
 .vscode/mcp.json
+.vscode/settings.json
 .kilocode/
