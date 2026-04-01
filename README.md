@@ -3,7 +3,9 @@
 Go/Rust-style HTTP client for TypeScript. No try/catch, just tuples.
 
 ```ts
-const [user, err] = await http.getJson<User>("/api/users/1");
+import { getJson } from "fetch-safe";
+
+const [user, err] = await getJson<User>("/api/users/1");
 if (err) {
   console.error(err.message);
   return;
