@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write # required for npm trusted publishing (OIDC — no token needed)
 
     steps:
       - name: Checkout
@@ -48,14 +49,10 @@ jobs:
       - name: Show version
         run: echo "Publishing fetch-safe@${{ steps.pkg.outputs.version }}"
 
-      - name: Publish to npm
+      - name: Publish to npm (trusted publishing — no token needed)
         if: ${{ inputs.dry_run == 'false' }}
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance
 
       - name: Dry run publish
         if: ${{ inputs.dry_run == 'true' }}
-        run: npm publish --access public --dry-run
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance --dry-run
