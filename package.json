@@ -34,6 +34,10 @@
         "rust",
         "typescript"
     ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/kodi/fetch-ok.git"
+    },
     "license": "MIT",
     "devDependencies": {
         "@typescript/native-preview": "latest",
