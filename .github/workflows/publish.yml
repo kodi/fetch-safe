@@ -52,11 +52,7 @@ jobs:
       - name: Publish to npm (trusted publishing — no token needed)
         if: ${{ inputs.dry_run == 'false' }}
         run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Dry run publish
         if: ${{ inputs.dry_run == 'true' }}
         run: npm publish --access public --provenance --dry-run
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
