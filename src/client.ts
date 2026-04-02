@@ -107,9 +107,12 @@ export async function getJson<T = unknown>(
   url: string,
   options?: RequestOptions<T>,
 ): Promise<Result<T, FetchError>> {
-  const [response, fetchErr] = await request("GET", url, options);
-  if (fetchErr) return err(fetchErr);
-  return parseJson<T>(response, options?.schema);
+  const responseResult = await request("GET", url, options);
+  if (!responseResult.ok) {
+    return err(responseResult.error as FetchError);
+  }
+
+  return parseJson<T>(responseResult.value as Response, options?.schema);
 }
 
 export async function postJson<T = unknown>(
@@ -117,13 +120,16 @@ export async function postJson<T = unknown>(
   body?: unknown,
   options?: RequestOptions<T>,
 ): Promise<Result<T, FetchError>> {
-  const [response, fetchErr] = await request("POST", url, {
+  const responseResult = await request("POST", url, {
     ...options,
     headers: { "Content-Type": "application/json", ...options?.headers },
     body: body != null ? JSON.stringify(body) : undefined,
   });
-  if (fetchErr) return err(fetchErr);
-  return parseJson<T>(response, options?.schema);
+  if (!responseResult.ok) {
+    return err(responseResult.error as FetchError);
+  }
+
+  return parseJson<T>(responseResult.value as Response, options?.schema);
 }
 
 export async function putJson<T = unknown>(
@@ -131,13 +137,16 @@ export async function putJson<T = unknown>(
   body?: unknown,
   options?: RequestOptions<T>,
 ): Promise<Result<T, FetchError>> {
-  const [response, fetchErr] = await request("PUT", url, {
+  const responseResult = await request("PUT", url, {
     ...options,
     headers: { "Content-Type": "application/json", ...options?.headers },
     body: body != null ? JSON.stringify(body) : undefined,
   });
-  if (fetchErr) return err(fetchErr);
-  return parseJson<T>(response, options?.schema);
+  if (!responseResult.ok) {
+    return err(responseResult.error as FetchError);
+  }
+
+  return parseJson<T>(responseResult.value as Response, options?.schema);
 }
 
 export async function patchJson<T = unknown>(
@@ -145,32 +154,41 @@ export async function patchJson<T = unknown>(
   body?: unknown,
   options?: RequestOptions<T>,
 ): Promise<Result<T, FetchError>> {
-  const [response, fetchErr] = await request("PATCH", url, {
+  const responseResult = await request("PATCH", url, {
     ...options,
     headers: { "Content-Type": "application/json", ...options?.headers },
     body: body != null ? JSON.stringify(body) : undefined,
   });
-  if (fetchErr) return err(fetchErr);
-  return parseJson<T>(response, options?.schema);
+  if (!responseResult.ok) {
+    return err(responseResult.error as FetchError);
+  }
+
+  return parseJson<T>(responseResult.value as Response, options?.schema);
 }
 
 export async function del<T = unknown>(
   url: string,
   options?: RequestOptions<T>,
 ): Promise<Result<T, FetchError>> {
-  const [response, fetchErr] = await request("DELETE", url, options);
-  if (fetchErr) return err(fetchErr);
-  return parseJson<T>(response, options?.schema);
+  const responseResult = await request("DELETE", url, options);
+  if (!responseResult.ok) {
+    return err(responseResult.error as FetchError);
+  }
+
+  return parseJson<T>(responseResult.value as Response, options?.schema);
 }
 
 export async function getText(
   url: string,
   options?: RequestOptions,
 ): Promise<Result<string, FetchError>> {
-  const [response, fetchErr] = await request("GET", url, options);
-  if (fetchErr) return err(fetchErr);
+  const responseResult = await request("GET", url, options);
+  if (!responseResult.ok) {
+    return err(responseResult.error as FetchError);
+  }
+
   try {
-    const text = await response.text();
+    const text = await (responseResult.value as Response).text();
     return ok(text);
   } catch (cause) {
     return err(
@@ -186,9 +204,12 @@ export async function head(
   url: string,
   options?: RequestOptions,
 ): Promise<Result<Headers, FetchError>> {
-  const [response, fetchErr] = await request("HEAD", url, options);
-  if (fetchErr) return err(fetchErr);
-  return ok(response.headers);
+  const responseResult = await request("HEAD", url, options);
+  if (!responseResult.ok) {
+    return err(responseResult.error as FetchError);
+  }
+
+  return ok((responseResult.value as Response).headers);
 }
 
 /**

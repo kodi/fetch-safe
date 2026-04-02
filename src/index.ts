@@ -1,8 +1,10 @@
 // Result types and constructors
 export {
   type Result,
+  type ResultObject,
   type Ok,
   type Err,
+  type ChainResult,
   type FetchError,
   HttpError,
   NetworkError,
@@ -10,6 +12,7 @@ export {
   ValidationError,
   ok,
   err,
+  chainResult,
 } from "./result.js";
 
 // HTTP client functions

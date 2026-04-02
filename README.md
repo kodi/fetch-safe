@@ -3,7 +3,9 @@
 [![npm version](https://img.shields.io/npm/v/fetch-safe)](https://www.npmjs.com/package/fetch-safe)
 [![Publish to npm](https://github.com/kodi/fetch-safe/actions/workflows/publish.yml/badge.svg)](https://github.com/kodi/fetch-safe/actions/workflows/publish.yml)
 
-Go/Rust-style HTTP client for TypeScript. No try/catch, just tuples.
+Tiny HTTP client for TypeScript with explicit errors and no `try/catch` at the call site.
+
+`fetch-safe` returns `Result` objects that still destructure like `[data, err]`, so the simplest path stays simple while richer result helpers remain available when you need them.
 
 ```ts
 import { getJson } from "fetch-safe";
@@ -22,35 +24,29 @@ console.log(user.name);
 pnpm add fetch-safe
 ```
 
-## Result Types
+## Simple HTTP
 
-| Type           | Shape                    | Description                                      |
-| -------------- | ------------------------ | ------------------------------------------------ |
-| `Result<T, E>` | `[T, null] \| [null, E]` | Union — use for function return types            |
-| `Ok<T>`        | `[T, null]`              | Success tuple — `data` is `T`, no null ambiguity |
-| `Err<E>`       | `[null, E]`              | Error tuple — `error` is `E`, no null ambiguity  |
+The core idea is straightforward:
 
-`ok()` returns `Ok<T>` and `err()` returns `Err<E>`, so destructured values are fully narrowed without `!` assertions:
-
-```ts
-const [data, error] = err(new HttpError(404, "Not Found"));
-error.status; // ✅ no `!` needed — TS knows error is HttpError
-
-const [data, error] = ok({ name: "Alice" });
-data.name; // ✅ no `!` needed — TS knows data is { name: string }
-```
-
-When the return type is `Result<T, E>` (either outcome possible), use the standard `if (error)` check:
+- call an HTTP helper
+- destructure `[data, err]`
+- return early on failure
+- keep working with typed data on success
 
 ```ts
-const [data, err] = await getJson<User>("/api/users/1");
-if (err) return; // narrows: err is FetchError
-data.name; // narrows: data is User
+import { getJson } from "fetch-safe";
+
+const [user, err] = await getJson<{ id: number; name: string }>("/api/users/1");
+
+if (err) {
+  console.error(err.message);
+  return;
+}
+
+console.log(user.name);
 ```
 
-## API
-
-Every method returns `Promise<Result<T, FetchError>>`.
+All request helpers return `Promise<Result<T, FetchError>>`:
 
 | Method                            | Description              |
 | --------------------------------- | ------------------------ |
@@ -62,7 +58,13 @@ Every method returns `Promise<Result<T, FetchError>>`.
 | `getText(url, opts?)`             | GET → raw string         |
 | `head(url, opts?)`                | HEAD → Headers           |
 
-All methods are also available on the `http` namespace object:
+You can import individual functions:
+
+```ts
+import { getJson, postJson } from "fetch-safe";
+```
+
+Or use the `http` namespace:
 
 ```ts
 import { http } from "fetch-safe";
@@ -70,23 +72,28 @@ import { http } from "fetch-safe";
 const [data, err] = await http.getJson("https://api.example.com/data");
 ```
 
-Or import individual functions:
+Pass standard `RequestInit` options plus a `timeout` in milliseconds:
 
 ```ts
-import { getJson, postJson } from "fetch-safe";
+const [data, err] = await getJson<User>("/api/me", {
+  headers: { Authorization: "Bearer token" },
+  timeout: 5_000,
+});
 ```
 
-## Error Types
+## Errors
 
-| Error             | When                                                                            |
-| ----------------- | ------------------------------------------------------------------------------- |
-| `HttpError`       | Server responded with non-2xx status. Has `.status`, `.statusText`, `.body`     |
-| `NetworkError`    | DNS failure, timeout, connection refused                                        |
-| `ParseError`      | Response body isn't valid JSON. Has `.body` with raw text                       |
-| `ValidationError` | Parsed JSON failed schema validation. Has `.issues`, `.body` (raw parsed value) |
+Errors are returned, not thrown.
+
+| Error             | When                                                                        |
+| ----------------- | --------------------------------------------------------------------------- |
+| `HttpError`       | Server responded with non-2xx status. Has `.status`, `.statusText`, `.body` |
+| `NetworkError`    | DNS failure, timeout, connection refused                                    |
+| `ParseError`      | Response body is not valid JSON. Has `.body` with raw text                  |
+| `ValidationError` | Parsed JSON failed schema validation. Has `.issues` and `.body`             |
 
 ```ts
-import { HttpError, NetworkError, ParseError } from "fetch-safe";
+import { getJson, HttpError, NetworkError, ParseError } from "fetch-safe";
 
 const [data, err] = await getJson<User>("/api/users/1");
 
@@ -106,14 +113,14 @@ console.log(data);
 
 ## Schema Validation
 
-Pass a `schema` option to validate the parsed JSON at runtime. Any object with a `.parse(value)` method works — Zod, Valibot, ArkType, or a hand-rolled validator.
+Add a `schema` to validate parsed JSON at runtime. Any object with a `.parse(value)` method works, including Zod, Valibot, ArkType, or a hand-rolled validator.
 
 ```ts
 import { z } from "zod";
+import { http, ValidationError } from "fetch-safe";
 
 const UserSchema = z.object({ id: z.number(), name: z.string() });
 
-// T is inferred from the schema — no need to pass a generic
 const [user, err] = await http.getJson("/api/users/1", { schema: UserSchema });
 
 if (err) {
@@ -123,36 +130,95 @@ if (err) {
   return;
 }
 
-console.log(user.name); // fully typed as { id: number; name: string }
+console.log(user.name);
 ```
 
-Works with all JSON methods: `getJson`, `postJson`, `putJson`, `patchJson`, `del`.
+When validation fails, `fetch-safe` returns a `ValidationError` instead of throwing. It includes:
 
-When validation fails, a `ValidationError` is returned (not thrown). It has:
-
-- `.issues` — array of validation issues from the schema library
-- `.body` — the raw parsed JSON that failed validation
+- `.issues` — validation issues from the schema library
+- `.body` — the parsed value that failed validation
 - `.cause` — the original error thrown by `.parse()`
 
-```ts
-import { ValidationError } from "fetch-safe";
+Schema validation works with all JSON methods: `getJson`, `postJson`, `putJson`, `patchJson`, and `del`.
 
-if (err instanceof ValidationError) {
-  console.error(err.issues); // Zod ZodIssue[], Valibot issues, etc.
-  console.error(err.body); // the raw parsed object
+## Result Types
+
+Under the hood, `fetch-safe` returns a `Result` object, not a raw tuple.
+
+That object gives you:
+
+- `.ok` to distinguish success from failure
+- `.value` and `.error`
+- result methods like `.map()` and `.toValueOrThrow()`
+- tuple-style destructuring so the common HTTP path still looks like `[data, err]`
+
+| Type           | Shape         | Description |
+| -------------- | ------------- | ----------- |
+| `Result<T, E>` | Result object | Supports `.ok`, `.value`, `.error`, methods, and `[data, err]` destructuring |
+| `Ok<T>`        | Success result | `ok: true`, `value: T`, `error: null` |
+| `Err<E>`       | Error result | `ok: false`, `value: null`, `error: E` |
+
+Tuple-style destructuring still works:
+
+```ts
+const [data, error] = ok({ name: "Alice" });
+
+if (!error) {
+  console.log(data.name);
 }
 ```
 
-## Options
-
-Pass standard `RequestInit` options (headers, credentials, etc.) plus a `timeout` (default: 30s):
+Object-style access is also available:
 
 ```ts
-const [data, err] = await getJson<User>("/api/me", {
-  headers: { Authorization: "Bearer token" },
-  timeout: 5_000,
-});
+const result = ok({ name: "Alice" });
+
+if (result.ok) {
+  console.log(result.value.name);
+}
 ```
+
+If `null` is a meaningful success value in your app, use `.ok` as the authoritative discriminator.
+
+## Helpers
+
+For simple HTTP calls, destructuring is enough. The helpers are there for transformation and composition.
+
+### `result.map(...)`
+
+```ts
+const result = ok(21).map((value) => value * 2);
+
+if (result.ok) {
+  console.log(result.value); // 42
+}
+```
+
+### `chainResult(...)`
+
+Use `chainResult` when you want async-aware chaining from a `Result` or `Promise<Result<...>>`.
+
+```ts
+import { chainResult, getJson } from "fetch-safe";
+
+const [name, err] = await chainResult(getJson<{ name: string }>("/api/users/1"))
+  .map((user) => user.name)
+  .toTuple();
+```
+
+### Value extraction helpers
+
+```ts
+const value = await chainResult(getJson<{ name: string }>("/api/users/1")).toValue();
+const valueOr = await chainResult(getJson<{ name: string }>("/api/users/1")).toValueOr("unknown");
+const valueOrThrow = await chainResult(getJson<{ name: string }>("/api/users/1")).toValueOrThrow();
+```
+
+- `toValue()` returns `T | null`
+- `toValueOr(fallback)` returns the fallback on error
+- `toValueOrThrow()` throws the original error on failure
+
+If `null` is a meaningful success value in your app, prefer `.ok`, `toValueOr(...)`, or `toValueOrThrow()` over `toValue()`.
 
 ## Prerequisites
 
