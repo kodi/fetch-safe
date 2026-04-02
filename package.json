@@ -1,6 +1,6 @@
 {
     "name": "fetch-safe",
-    "version": "0.2.2",
+    "version": "0.2.3",
     "description": "HTTP client with explicit Result-based error handling for TypeScript",
     "type": "module",
     "main": "dist/index.mjs",
@@ -18,10 +18,16 @@
         "build": "tsdown",
         "check": "tsgo --noEmit",
         "lint": "oxlint",
-        "fmt": "oxfmt --write src tests",
-        "fmt:check": "oxfmt --check src tests",
+        "fmt": "oxfmt --write src tests perf",
+        "fmt:check": "oxfmt --check src tests perf",
         "test": "vitest run",
         "test:watch": "vitest",
+        "preperf": "pnpm run build",
+        "perf": "node --import tsx perf/bench.ts",
+        "preperf:memory": "pnpm run build",
+        "perf:memory": "node --expose-gc --import tsx perf/memory.ts",
+        "preperf:soak": "pnpm run build",
+        "perf:soak": "node --expose-gc --import tsx perf/soak.ts",
         "prepack": "pnpm run build"
     },
     "keywords": [
@@ -43,7 +49,9 @@
         "@typescript/native-preview": "latest",
         "oxfmt": "latest",
         "oxlint": "latest",
+        "tinybench": "^2.9.0",
         "tsdown": "latest",
+        "tsx": "^4.20.6",
         "typescript": "latest",
         "vitest": "latest",
         "zod": "^4.3.6"

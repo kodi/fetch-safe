@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { getJson, postJson, putJson, patchJson, del, getText, head } from "../src/client.js";
 import { HttpError, NetworkError, ParseError } from "../src/result.js";
+import { request } from "../src/client/request.js";
 
 // Mock global fetch
 const mockFetch = vi.fn();
@@ -111,6 +112,19 @@ describe("getJson", () => {
         headers: { Authorization: "Bearer token123" },
       }),
     );
+  });
+
+  it("clears the timeout when fetch rejects", async () => {
+    const clearTimeoutSpy = vi.spyOn(globalThis, "clearTimeout");
+    mockFetch.mockRejectedValueOnce(new TypeError("fetch failed"));
+
+    const [data, error] = await request("GET", "https://unreachable.example.com", {
+      timeout: 60_000,
+    });
+
+    expect(data).toBeNull();
+    expect(error).toBeInstanceOf(NetworkError);
+    expect(clearTimeoutSpy).toHaveBeenCalledTimes(1);
   });
 });
 

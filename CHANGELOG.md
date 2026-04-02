@@ -6,6 +6,21 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-04-02
+
+### Added
+
+- Added manual performance tooling under `perf/` for throughput, memory retention, and soak testing.
+- Added a live in-place ASCII progress bar for the soak test and made the default soak duration 5 minutes.
+
+### Changed
+
+- Added dedicated `pnpm perf`, `pnpm perf:memory`, and `pnpm perf:soak` scripts with automatic pre-build steps so benchmarks always run against the latest `dist/` output.
+
+### Fixed
+
+- Cleared request timeout timers on both success and failure paths to avoid leaving timers pending during rejected or timed out requests.
+
 ## [0.2.2] - 2026-04-02
 
 ### Changed

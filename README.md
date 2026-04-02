@@ -238,6 +238,9 @@ pnpm lint             # oxlint
 pnpm fmt              # oxfmt
 pnpm check            # tsgo type check
 pnpm build            # tsdown package build
+pnpm perf             # manual throughput benchmarks
+pnpm perf:memory      # manual retention tests, requires --expose-gc
+pnpm perf:soak        # manual mixed workload soak test
 ```
 
 ### Mise Tasks
@@ -248,6 +251,38 @@ mise run lint         # oxlint
 mise run format-check # oxfmt --check
 mise run local-ci     # all three in parallel
 ```
+
+## Manual Performance Testing
+
+Performance and long-running reliability checks are intentionally separate from the unit suite.
+
+- `pnpm test` stays focused on correctness.
+- `pnpm perf` measures relative throughput for hot paths.
+- `pnpm perf:memory` looks for retained heap growth across batched runs.
+- `pnpm perf:soak` runs a mixed success and failure workload for a longer interval and shows an in-place ASCII progress bar.
+
+The manual scripts live under `perf/` as TypeScript files and execute against the built package in `dist/` so they measure the published runtime shape while keeping the harness itself typed.
+
+Each perf command has a matching pnpm pre-script, so `dist/` is rebuilt from the latest source automatically before the benchmark starts.
+
+### Suggested workflow
+
+```bash
+pnpm perf
+pnpm perf:memory
+PERF_SOAK_MS=300000 pnpm perf:soak
+```
+
+`pnpm perf:soak` defaults to a 5 minute run when `PERF_SOAK_MS` is not set.
+
+What to watch for:
+
+- throughput regressions compared to your last baseline
+- post-GC heap usage that keeps climbing batch after batch
+- RSS growth during the soak test that never stabilizes
+- disproportionate growth on failure-heavy runs compared to success-heavy runs
+
+The request layer now clears its timeout timer on both success and failure paths, which matters when you stress rejected or timed out requests in long-running apps.
 
 ## License
 

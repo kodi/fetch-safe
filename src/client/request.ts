@@ -36,18 +36,15 @@ export async function request(
   options?: RequestInit & { timeout?: number },
 ): Promise<Result<Response, FetchError>> {
   const { timeout = 30_000, ...fetchOptions } = options ?? {};
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
 
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeout);
-
     const response = await fetch(url, {
       ...fetchOptions,
       method,
       signal: controller.signal,
     });
-
-    clearTimeout(timer);
 
     if (!response.ok) {
       const body = await response.text().catch(() => undefined);
@@ -63,6 +60,8 @@ export async function request(
     return err(
       new NetworkError(error instanceof Error ? error.message : "Unknown network error", error),
     );
+  } finally {
+    clearTimeout(timer);
   }
 }
 
