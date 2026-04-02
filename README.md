@@ -184,19 +184,33 @@ If `null` is a meaningful success value in your app, use `.ok` as the authoritat
 
 For simple HTTP calls, destructuring is enough. The helpers are there for transformation and composition.
 
+Use `result.map(...)` when you already have a `Result` in hand.
+Use `chainResult(...)` when you want to start from `getJson(...)` directly, or when your mapper is async.
+
 ### `result.map(...)`
 
-```ts
-const result = ok(21).map((value) => value * 2);
+`Result.map(...)` is synchronous. This is the right tool after you already `await` a request helper.
 
-if (result.ok) {
-  console.log(result.value); // 42
+```ts
+const result = await getJson<{ id: number; title: string }>("/api/todos/1");
+
+const mapped = result.map((todo) => ({
+  id: todo.id,
+  title: todo.title.toUpperCase(),
+}));
+
+if (mapped.ok) {
+  console.log(mapped.value.title);
 }
 ```
 
 ### `chainResult(...)`
 
 Use `chainResult` when you want async-aware chaining from a `Result` or `Promise<Result<...>>`.
+It exists for two cases:
+
+- you want to start chaining from `getJson(...)` before `await`
+- your mapper returns a `Promise`
 
 ```ts
 import { chainResult, getJson } from "fetch-safe";
@@ -204,6 +218,14 @@ import { chainResult, getJson } from "fetch-safe";
 const [name, err] = await chainResult(getJson<{ name: string }>("/api/users/1"))
   .map((user) => user.name)
   .toTuple();
+```
+
+Async mapper example:
+
+```ts
+const title = await chainResult(getJson<{ title: string }>("/api/todos/1"))
+  .map(async (todo) => todo.title.toUpperCase())
+  .toValueOrThrow();
 ```
 
 ### Value extraction helpers

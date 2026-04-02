@@ -6,6 +6,17 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-04-02
+
+### Changed
+
+- Clarified the README around when to use synchronous `Result.map(...)` versus async-aware `chainResult(...)`.
+
+### Added
+
+- Added coverage for multiple synchronous `chainResult(...).map(...)` calls in a single chain.
+- Added coverage for mixed synchronous and asynchronous `chainResult(...).map(...)` calls in a single chain.
+
 ## [0.2.3] - 2026-04-02
 
 ### Added

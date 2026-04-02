@@ -86,12 +86,34 @@ describe("chainResult()", () => {
     expect(error).toBeNull();
   });
 
+  it("supports multiple synchronous map calls in a chain", async () => {
+    const [data, error] = await chainResult(ok(21))
+      .map((value) => value * 2)
+      .map((value) => value.toString())
+      .map((value) => `value:${value}`)
+      .toTuple();
+
+    expect(data).toBe("value:42");
+    expect(error).toBeNull();
+  });
+
   it("maps an async result and async mapper", async () => {
     const [data, error] = await chainResult(Promise.resolve(ok(21)))
       .map(async (value) => value * 2)
       .toTuple();
 
     expect(data).toBe(42);
+    expect(error).toBeNull();
+  });
+
+  it("supports mixed sync and async map calls in a chain", async () => {
+    const [data, error] = await chainResult(ok(21))
+      .map((value) => value * 2)
+      .map(async (value) => value.toString())
+      .map((value) => `value:${value}`)
+      .toTuple();
+
+    expect(data).toBe("value:42");
     expect(error).toBeNull();
   });
 
