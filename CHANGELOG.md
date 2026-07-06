@@ -6,6 +6,10 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 ## [Unreleased]
 
+### Changed
+
+- Migrated local tooling, package scripts, tests, linting, formatting, package builds, and publish CI to Vite+.
+
 ## [0.2.5] - 2026-07-06
 
 ### Changed

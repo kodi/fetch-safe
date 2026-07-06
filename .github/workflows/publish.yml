@@ -24,23 +24,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Install mise
-        uses: jdx/mise-action@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v6
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1
         with:
           node-version: "24"
-          registry-url: "https://registry.npmjs.org"
+          cache: true
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: vp install
 
       - name: Run tests
-        run: pnpm test
+        run: vp test
 
       - name: Build
-        run: pnpm build
+        run: vp pack
 
       - name: Read version from package.json
         id: pkg

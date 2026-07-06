@@ -2,6 +2,34 @@ import { err, type Result } from "../result-core.js";
 import { type FetchError } from "../errors.js";
 import { parseJson, request, type RequestOptions } from "./request.js";
 
+function mergeJsonHeaders(headers?: HeadersInit): HeadersInit {
+  const mergedHeaders: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (!headers) {
+    return mergedHeaders;
+  }
+
+  if (headers instanceof Headers) {
+    headers.forEach((value, key) => {
+      mergedHeaders[key] = value;
+    });
+
+    return mergedHeaders;
+  }
+
+  if (Array.isArray(headers)) {
+    for (const [key, value] of headers) {
+      mergedHeaders[key] = value;
+    }
+
+    return mergedHeaders;
+  }
+
+  return { ...mergedHeaders, ...headers };
+}
+
 async function requestJsonBody<T>(
   method: string,
   url: string,
@@ -10,7 +38,7 @@ async function requestJsonBody<T>(
 ): Promise<Result<T, FetchError>> {
   const responseResult = await request(method, url, {
     ...options,
-    headers: { "Content-Type": "application/json", ...options?.headers },
+    headers: mergeJsonHeaders(options?.headers),
     body: body != null ? JSON.stringify(body) : undefined,
   });
 

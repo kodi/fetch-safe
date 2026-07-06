@@ -18,16 +18,24 @@ type BatchRunnerOptions = {
   afterEachBatch?: (batchIndex: number) => Promise<void> | void;
 };
 
-export function assertGcAvailable(): asserts globalThis is typeof globalThis & {
-  gc: () => void;
-} {
-  if (typeof globalThis.gc !== "function") {
+type MemoryMetric = Exclude<keyof MemorySnapshot, "label">;
+
+function getGc() {
+  const gc = (globalThis as typeof globalThis & { gc?: () => void }).gc;
+
+  if (typeof gc !== "function") {
     throw new Error("Run this script with node --expose-gc");
   }
+
+  return gc;
+}
+
+export function assertGcAvailable() {
+  getGc();
 }
 
 export function forceGc() {
-  globalThis.gc();
+  getGc()();
 }
 
 export function formatNumber(value: number) {
@@ -113,11 +121,7 @@ export function printSection(title: string) {
   console.log("-".repeat(title.length));
 }
 
-export function calculateDelta(
-  start: MemorySnapshot,
-  end: MemorySnapshot,
-  key: keyof MemorySnapshot,
-) {
+export function calculateDelta(start: MemorySnapshot, end: MemorySnapshot, key: MemoryMetric) {
   return end[key] - start[key];
 }
 

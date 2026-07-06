@@ -73,9 +73,9 @@ async function main() {
 
   const rows = bench.tasks.map((task) => ({
     name: task.name,
-    hz: task.result?.hz?.toFixed(2) ?? "n/a",
-    averageNs: task.result?.mean ? (task.result.mean * 1e9).toFixed(0) : "n/a",
-    samples: task.result?.samples.length ?? 0,
+    hz: "throughput" in task.result ? task.result.throughput.mean.toFixed(2) : "n/a",
+    averageNs: "latency" in task.result ? (task.result.latency.mean * 1e6).toFixed(0) : "n/a",
+    samples: "latency" in task.result ? task.result.latency.samplesCount : 0,
   }));
 
   console.table(rows);

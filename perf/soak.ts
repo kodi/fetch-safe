@@ -17,10 +17,10 @@ import {
 
 const UserSchema = z.object({ id: z.number(), name: z.string(), flags: z.array(z.string()) });
 
-function createFetchMock() {
+function createFetchMock(): typeof fetch {
   let requestCount = 0;
 
-  return async (_url: string, options?: RequestInit) => {
+  return async (_input: RequestInfo | URL, options?: RequestInit) => {
     requestCount += 1;
     const mode = requestCount % 20;
 

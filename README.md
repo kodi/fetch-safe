@@ -152,11 +152,11 @@ That object gives you:
 - result methods like `.map()` and `.toValueOrThrow()`
 - tuple-style destructuring so the common HTTP path still looks like `[data, err]`
 
-| Type           | Shape         | Description |
-| -------------- | ------------- | ----------- |
-| `Result<T, E>` | Result object | Supports `.ok`, `.value`, `.error`, methods, and `[data, err]` destructuring |
-| `Ok<T>`        | Success result | `ok: true`, `value: T`, `error: null` |
-| `Err<E>`       | Error result | `ok: false`, `value: null`, `error: E` |
+| Type           | Shape          | Description                                                                  |
+| -------------- | -------------- | ---------------------------------------------------------------------------- |
+| `Result<T, E>` | Result object  | Supports `.ok`, `.value`, `.error`, methods, and `[data, err]` destructuring |
+| `Ok<T>`        | Success result | `ok: true`, `value: T`, `error: null`                                        |
+| `Err<E>`       | Error result   | `ok: false`, `value: null`, `error: E`                                       |
 
 Tuple-style destructuring still works:
 
@@ -244,58 +244,46 @@ If `null` is a meaningful success value in your app, prefer `.ok`, `toValueOr(..
 
 ## Prerequisites
 
-Install [mise](https://mise.jdx.dev/) for managing development tools:
+Install [Vite+](https://viteplus.dev/guide/) for the project toolchain:
 
 ```bash
-brew install mise
+curl -fsSL https://vite.plus | bash
 ```
 
 ## Development
 
 ```bash
-mise install          # Node 24, Bun, pnpm 10
-pnpm install          # dependencies
-pnpm test             # vitest
-pnpm lint             # oxlint
-pnpm fmt              # oxfmt
-pnpm check            # tsgo type check
-pnpm build            # tsdown package build
-pnpm perf             # manual throughput benchmarks
-pnpm perf:memory      # manual retention tests, requires --expose-gc
-pnpm perf:soak        # manual mixed workload soak test
-```
-
-### Mise Tasks
-
-```bash
-mise run typecheck    # tsgo --noEmit
-mise run lint         # oxlint
-mise run format-check # oxfmt --check
-mise run local-ci     # all three in parallel
+vp install            # dependencies
+vp check              # format, lint, and type check
+vp test               # unit tests
+vp pack               # package build
+vp run perf           # manual throughput benchmarks
+vp run perf:memory    # manual retention tests, requires --expose-gc
+vp run perf:soak      # manual mixed workload soak test
 ```
 
 ## Manual Performance Testing
 
 Performance and long-running reliability checks are intentionally separate from the unit suite.
 
-- `pnpm test` stays focused on correctness.
-- `pnpm perf` measures relative throughput for hot paths.
-- `pnpm perf:memory` looks for retained heap growth across batched runs.
-- `pnpm perf:soak` runs a mixed success and failure workload for a longer interval and shows an in-place ASCII progress bar.
+- `vp test` stays focused on correctness.
+- `vp run perf` measures relative throughput for hot paths.
+- `vp run perf:memory` looks for retained heap growth across batched runs.
+- `vp run perf:soak` runs a mixed success and failure workload for a longer interval and shows an in-place ASCII progress bar.
 
 The manual scripts live under `perf/` as TypeScript files and execute against the built package in `dist/` so they measure the published runtime shape while keeping the harness itself typed.
 
-Each perf command has a matching pnpm pre-script, so `dist/` is rebuilt from the latest source automatically before the benchmark starts.
+Each perf command has a matching pre-script, so `dist/` is rebuilt from the latest source automatically before the benchmark starts.
 
 ### Suggested workflow
 
 ```bash
-pnpm perf
-pnpm perf:memory
-PERF_SOAK_MS=300000 pnpm perf:soak
+vp run perf
+vp run perf:memory
+PERF_SOAK_MS=300000 vp run perf:soak
 ```
 
-`pnpm perf:soak` defaults to a 5 minute run when `PERF_SOAK_MS` is not set.
+`vp run perf:soak` defaults to a 5 minute run when `PERF_SOAK_MS` is not set.
 
 What to watch for:
 

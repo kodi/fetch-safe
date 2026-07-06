@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { z } from "zod";
 import { getJson, postJson, putJson, patchJson, del } from "../src/client.js";
 import { ParseError, ValidationError } from "../src/result.js";
