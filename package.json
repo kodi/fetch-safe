@@ -1,6 +1,6 @@
 {
   "name": "fetch-safe",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "HTTP client with explicit Result-based error handling for TypeScript",
   "keywords": [
     "error-handling",
