@@ -1,6 +1,6 @@
 {
     "name": "fetch-safe",
-    "version": "0.2.4",
+    "version": "0.2.5",
     "description": "HTTP client with explicit Result-based error handling for TypeScript",
     "type": "module",
     "main": "dist/index.mjs",
@@ -49,11 +49,11 @@
         "@typescript/native-preview": "latest",
         "oxfmt": "latest",
         "oxlint": "latest",
-        "tinybench": "^2.9.0",
+        "tinybench": "^6.0.2",
         "tsdown": "latest",
-        "tsx": "^4.20.6",
+        "tsx": "^4.23.0",
         "typescript": "latest",
         "vitest": "latest",
-        "zod": "^4.3.6"
+        "zod": "^4.4.3"
     }
 }

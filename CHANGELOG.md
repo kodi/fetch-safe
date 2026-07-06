@@ -6,6 +6,13 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-07-06
+
+### Changed
+
+- Updated development dependencies and refreshed the pnpm lockfile.
+- Updated the repo-local mise pnpm toolchain to pnpm 11.10.0.
+
 ## [0.2.4] - 2026-04-02
 
 ### Changed
