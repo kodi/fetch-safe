@@ -48,8 +48,8 @@ jobs:
 
       - name: Publish to npm
         if: ${{ inputs.dry_run == 'false' }}
-        run: npm publish --access public --provenance
+        run: npm publish --force --access public --provenance
 
       - name: Dry run publish
         if: ${{ inputs.dry_run == 'true' }}
-        run: npm publish --access public --provenance --dry-run
+        run: npm publish --force --access public --provenance --dry-run
