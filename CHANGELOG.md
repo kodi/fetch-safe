@@ -6,6 +6,12 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 
 ## [Unreleased]
 
+## [0.2.7] - 2026-07-07
+
+### Changed
+
+- Improved performance benchmark output with explanatory metrics, summary guidance, and a styled terminal table highlighting best values.
+
 ## [0.2.6] - 2026-07-07
 
 ### Changed
