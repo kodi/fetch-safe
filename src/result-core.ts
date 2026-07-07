@@ -48,6 +48,10 @@ class ResultImpl<T, E = HttpError> implements Result<T, E> {
   readonly 1: E | null;
   readonly length = 2 as const;
 
+  /**
+   * Stores both object fields and tuple indexes so callers can choose
+   * `result.value`/`result.error` or `[value, error]` without adapters.
+   */
   constructor(ok: boolean, value: T | null, error: E | null) {
     this.ok = ok;
     this.value = value;
@@ -56,6 +60,10 @@ class ResultImpl<T, E = HttpError> implements Result<T, E> {
     this[1] = error;
   }
 
+  /**
+   * Transforms only successful values and preserves the original error object.
+   * This keeps failure identity intact for callers that compare or rethrow it.
+   */
   map<U>(fn: (value: T) => U): Result<U, E> {
     if (!this.ok) {
       return createResult<U, E>(false, null, this.error as E);
@@ -64,14 +72,17 @@ class ResultImpl<T, E = HttpError> implements Result<T, E> {
     return createResult<U, E>(true, fn(this.value as T), null);
   }
 
+  /** Returns the destructuring-friendly tuple representation. */
   toTuple(): ResultTuple<T, E> {
     return [this.value, this.error];
   }
 
+  /** Returns the success value or `null`, matching the tuple's first slot. */
   toValue(): T | null {
     return this.value;
   }
 
+  /** Unwraps the success value while letting callers provide an error fallback. */
   toValueOr(fallback: T): T {
     if (!this.ok) {
       return fallback;
@@ -80,6 +91,10 @@ class ResultImpl<T, E = HttpError> implements Result<T, E> {
     return this.value as T;
   }
 
+  /**
+   * Bridges Result-style handling back to exception flow.
+   * Non-Error failures are wrapped so the thrown value is always an Error.
+   */
   toValueOrThrow(): T {
     if (this.ok) {
       return this.value as T;
@@ -92,20 +107,27 @@ class ResultImpl<T, E = HttpError> implements Result<T, E> {
     throw new Error("Result contained a non-Error failure", { cause: this.error });
   }
 
+  /** Makes Result iterable as `[value, error]` for native destructuring. */
   *[Symbol.iterator](): IterableIterator<T | E | null> {
     yield this.value;
     yield this.error;
   }
 }
 
+/**
+ * Internal factory for generic Result construction when the concrete variant
+ * is determined by control flow rather than the public `ok`/`err` helpers.
+ */
 function createResult<T, E>(ok: boolean, value: T | null, error: E | null): Result<T, E> {
   return new ResultImpl(ok, value, error) as Result<T, E>;
 }
 
+/** Builds the typed success variant while hiding implementation casting. */
 function createOk<T>(value: T): Ok<T> {
   return new ResultImpl<T, never>(true, value, null) as Ok<T>;
 }
 
+/** Builds the typed error variant while hiding implementation casting. */
 function createErr<E>(error: E): Err<E> {
   return new ResultImpl<never, E>(false, null, error) as Err<E>;
 }
@@ -131,10 +153,18 @@ export interface ChainResult<T, E> {
 class ChainResultWrapper<T, E> implements ChainResult<T, E> {
   readonly #resultPromise: Promise<Result<T, E>>;
 
+  /**
+   * Normalizes sync and async Results into one Promise-backed pipeline.
+   * Each chained method can then defer unwrapping until a terminal method.
+   */
   constructor(result: Awaitable<Result<T, E>>) {
     this.#resultPromise = Promise.resolve(result);
   }
 
+  /**
+   * Queues a mapper that runs only for successful results.
+   * Errors skip the mapper and continue through the chain unchanged.
+   */
   map<U>(fn: (value: T) => Awaitable<U>): ChainResult<U, E> {
     return new ChainResultWrapper<U, E>(
       this.#resultPromise.then(async (result): Promise<Result<U, E>> => {
@@ -147,18 +177,22 @@ class ChainResultWrapper<T, E> implements ChainResult<T, E> {
     );
   }
 
+  /** Resolves the chain into the same tuple shape as a plain Result. */
   async toTuple(): Promise<ResultTuple<T, E>> {
     return (await this.#resultPromise).toTuple();
   }
 
+  /** Resolves only the value side, returning `null` for failures. */
   async toValue(): Promise<T | null> {
     return (await this.#resultPromise).toValue();
   }
 
+  /** Resolves the value side with a fallback for failures. */
   async toValueOr(fallback: T): Promise<T> {
     return (await this.#resultPromise).toValueOr(fallback);
   }
 
+  /** Resolves the value or throws the stored error, matching Result semantics. */
   async toValueOrThrow(): Promise<T> {
     return (await this.#resultPromise).toValueOrThrow();
   }

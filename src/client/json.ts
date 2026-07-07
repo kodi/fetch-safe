@@ -2,6 +2,10 @@ import { err, type Result } from "../result-core.js";
 import { type FetchError } from "../errors.js";
 import { parseJson, request, type RequestOptions } from "./request.js";
 
+/**
+ * Adds a JSON content type while preserving caller-provided headers.
+ * Accepts all HeadersInit shapes so the public API can mirror fetch.
+ */
 function mergeJsonHeaders(headers?: HeadersInit): HeadersInit {
   const mergedHeaders: Record<string, string> = {
     "Content-Type": "application/json",
@@ -30,6 +34,10 @@ function mergeJsonHeaders(headers?: HeadersInit): HeadersInit {
   return { ...mergedHeaders, ...headers };
 }
 
+/**
+ * Shared JSON request path for methods with bodies.
+ * It serializes non-null bodies and then delegates response parsing/validation.
+ */
 async function requestJsonBody<T>(
   method: string,
   url: string,
@@ -49,6 +57,10 @@ async function requestJsonBody<T>(
   return parseJson<T>(responseResult.value as Response, options?.schema);
 }
 
+/**
+ * Performs a GET request and parses the response as JSON.
+ * Optional schema validation narrows the returned value type.
+ */
 export async function getJson<T = unknown>(
   url: string,
   options?: RequestOptions<T>,
@@ -62,6 +74,7 @@ export async function getJson<T = unknown>(
   return parseJson<T>(responseResult.value as Response, options?.schema);
 }
 
+/** Sends a JSON POST body and parses the JSON response. */
 export async function postJson<T = unknown>(
   url: string,
   body?: unknown,
@@ -70,6 +83,7 @@ export async function postJson<T = unknown>(
   return requestJsonBody<T>("POST", url, body, options);
 }
 
+/** Sends a JSON PUT body and parses the JSON response. */
 export async function putJson<T = unknown>(
   url: string,
   body?: unknown,
@@ -78,6 +92,7 @@ export async function putJson<T = unknown>(
   return requestJsonBody<T>("PUT", url, body, options);
 }
 
+/** Sends a JSON PATCH body and parses the JSON response. */
 export async function patchJson<T = unknown>(
   url: string,
   body?: unknown,
@@ -86,6 +101,10 @@ export async function patchJson<T = unknown>(
   return requestJsonBody<T>("PATCH", url, body, options);
 }
 
+/**
+ * Performs a DELETE request and parses the response as JSON.
+ * Use this for APIs that return a confirmation payload after deletion.
+ */
 export async function del<T = unknown>(
   url: string,
   options?: RequestOptions<T>,

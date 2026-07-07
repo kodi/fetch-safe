@@ -4,6 +4,7 @@ export class HttpError extends Error {
   readonly statusText: string;
   readonly body: string | undefined;
 
+  /** Captures non-2xx HTTP responses without losing status or response body. */
   constructor(status: number, statusText: string, body?: string) {
     super(`HTTP ${status}: ${statusText}`);
     this.name = "HttpError";
@@ -17,6 +18,7 @@ export class HttpError extends Error {
 export class NetworkError extends Error {
   readonly cause: unknown;
 
+  /** Wraps fetch, timeout, and body-read failures with their original cause. */
   constructor(message: string, cause?: unknown) {
     super(message);
     this.name = "NetworkError";
@@ -29,6 +31,7 @@ export class ParseError extends Error {
   readonly body: string;
   readonly cause: unknown;
 
+  /** Stores the raw response text so callers can inspect invalid JSON payloads. */
   constructor(body: string, cause?: unknown) {
     super("Failed to parse response as JSON");
     this.name = "ParseError";
@@ -43,6 +46,7 @@ export class ValidationError extends Error {
   readonly body: unknown;
   readonly cause: unknown;
 
+  /** Keeps both normalized validation issues and the parsed body that failed. */
   constructor(issues: unknown[], body: unknown, cause?: unknown) {
     super("Response failed schema validation");
     this.name = "ValidationError";

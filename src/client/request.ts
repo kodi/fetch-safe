@@ -30,6 +30,10 @@ export type JsonRequestOptions<T = unknown> = RequestOptions<T> & {
   body?: unknown;
 };
 
+/**
+ * Executes fetch with a timeout and converts every failure mode into FetchError.
+ * HTTP non-2xx responses are not thrown; their status and body are preserved.
+ */
 export async function request(
   method: string,
   url: string,
@@ -65,6 +69,10 @@ export async function request(
   }
 }
 
+/**
+ * Reads and parses a JSON response, then optionally validates it with a schema.
+ * Validation issues are normalized so consumers always receive an array.
+ */
 export async function parseJson<T>(
   response: Response,
   schema?: Schema<T>,

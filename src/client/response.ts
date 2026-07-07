@@ -2,6 +2,10 @@ import { err, ok, type Result } from "../result-core.js";
 import { type FetchError, NetworkError } from "../errors.js";
 import { request, type RequestOptions } from "./request.js";
 
+/**
+ * Fetches a resource as raw text while preserving Result-based error handling.
+ * Body read failures become NetworkError because they happen after fetch starts.
+ */
 export async function getText(
   url: string,
   options?: RequestOptions,
@@ -24,6 +28,10 @@ export async function getText(
   }
 }
 
+/**
+ * Performs a HEAD request and returns only response headers.
+ * This avoids body parsing and is useful for metadata checks.
+ */
 export async function head(
   url: string,
   options?: RequestOptions,
