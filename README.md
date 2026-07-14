@@ -48,15 +48,22 @@ console.log(user.name);
 
 All request helpers return `Promise<Result<T, FetchError>>`:
 
-| Method                            | Description              |
-| --------------------------------- | ------------------------ |
-| `getJson<T>(url, opts?)`          | GET → parsed JSON        |
-| `postJson<T>(url, body?, opts?)`  | POST JSON → parsed JSON  |
-| `putJson<T>(url, body?, opts?)`   | PUT JSON → parsed JSON   |
-| `patchJson<T>(url, body?, opts?)` | PATCH JSON → parsed JSON |
-| `del<T>(url, opts?)`              | DELETE → parsed JSON     |
-| `getText(url, opts?)`             | GET → raw string         |
-| `head(url, opts?)`                | HEAD → Headers           |
+| Method                               | Description                      |
+| ------------------------------------ | -------------------------------- |
+| `get<T>(url, opts?)`                 | GET → selectable response        |
+| `post<T>(url, body?, opts?)`         | POST JSON → selectable response  |
+| `put<T>(url, body?, opts?)`          | PUT JSON → selectable response   |
+| `patch<T>(url, body?, opts?)`        | PATCH JSON → selectable response |
+| `httpRequest<T>(method, url, opts?)` | Any method → selectable response |
+| `getJson<T>(url, opts?)`             | GET → parsed JSON                |
+| `postJson<T>(url, body?, opts?)`     | POST JSON → parsed JSON          |
+| `putJson<T>(url, body?, opts?)`      | PUT JSON → parsed JSON           |
+| `patchJson<T>(url, body?, opts?)`    | PATCH JSON → parsed JSON         |
+| `del<T>(url, opts?)`                 | DELETE → parsed JSON             |
+| `delAs<T>(url, opts?)`               | DELETE → selectable response     |
+| `delVoid(url, opts?)`                | DELETE → no response body        |
+| `getText(url, opts?)`                | GET → raw string                 |
+| `head(url, opts?)`                   | HEAD → Headers                   |
 
 You can import individual functions:
 
@@ -72,6 +79,24 @@ import { http } from "fetch-safe";
 const [data, err] = await http.getJson("https://api.example.com/data");
 ```
 
+Use `createClient(...)` when an app has shared configuration like a base URL,
+auth headers, timeout, custom `fetch`, or request/response hooks:
+
+```ts
+import { createClient } from "fetch-safe";
+
+const api = createClient({
+  baseUrl: "https://api.example.com/v1",
+  timeout: 5_000,
+  headers: () => ({ Authorization: `Bearer ${getToken()}` }),
+  onRequest(url, init) {
+    console.debug("request", init.method, url);
+  },
+});
+
+const [user, err] = await api.getJson<User>("/users/1");
+```
+
 Pass standard `RequestInit` options plus a `timeout` in milliseconds:
 
 ```ts
@@ -80,6 +105,23 @@ const [data, err] = await getJson<User>("/api/me", {
   timeout: 5_000,
 });
 ```
+
+## Response modes
+
+The JSON helpers stay as the simple path, but the `get`, `post`, `put`,
+`patch`, `delAs`, and `http.request` APIs can read different response shapes
+with `as`:
+
+```ts
+const [user] = await http.get<User>("/users/1"); // defaults to { as: "json" }
+const [text] = await http.get("/health", { as: "text" });
+const [file] = await http.get("/report.pdf", { as: "blob" });
+const [response] = await http.request("GET", "/users/1", { as: "response" });
+const [, deleteErr] = await http.delVoid("/users/1");
+```
+
+Empty JSON bodies now resolve to `undefined` instead of a parse error, so `204`
+responses are handled cleanly.
 
 ## Errors
 
@@ -93,16 +135,16 @@ Errors are returned, not thrown.
 | `ValidationError` | Parsed JSON failed schema validation. Has `.issues` and `.body`             |
 
 ```ts
-import { getJson, HttpError, NetworkError, ParseError } from "fetch-safe";
+import { getJson, isHttpError, isNetworkError, isParseError } from "fetch-safe";
 
 const [data, err] = await getJson<User>("/api/users/1");
 
 if (err) {
-  if (err instanceof HttpError) {
+  if (isHttpError(err)) {
     console.error(`HTTP ${err.status}: ${err.body}`);
-  } else if (err instanceof NetworkError) {
+  } else if (isNetworkError(err)) {
     console.error("Network issue:", err.message);
-  } else if (err instanceof ParseError) {
+  } else if (isParseError(err)) {
     console.error("Bad JSON:", err.body);
   }
   return;
@@ -110,6 +152,9 @@ if (err) {
 
 console.log(data);
 ```
+
+Each error also has a stable `.kind` discriminator: `"http"`, `"network"`,
+`"parse"`, or `"validation"`. `instanceof` still works if you prefer it.
 
 ## Schema Validation
 

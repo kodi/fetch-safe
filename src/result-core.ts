@@ -5,6 +5,11 @@ export type ResultTuple<T, E> = readonly [T | null, E | null];
 
 type Awaitable<T> = T | Promise<T>;
 
+export type ResultMatchHandlers<T, E, U> = {
+  ok(value: T): U;
+  err(error: E): U;
+};
+
 export interface Result<T, E = HttpError> extends Iterable<T | E | null> {
   readonly ok: boolean;
   readonly value: T | null;
@@ -13,6 +18,9 @@ export interface Result<T, E = HttpError> extends Iterable<T | E | null> {
   readonly 1: E | null;
   readonly length: 2;
   map<U>(fn: (value: T) => U): Result<U, E>;
+  mapError<F>(fn: (error: E) => F): Result<T, F>;
+  andThen<U, F = E>(fn: (value: T) => Result<U, F>): Result<U, E | F>;
+  match<U>(handlers: ResultMatchHandlers<T, E, U>): U;
   toTuple(): ResultTuple<T, E>;
   toValue(): T | null;
   toValueOr(fallback: T): T;
@@ -70,6 +78,36 @@ class ResultImpl<T, E = HttpError> implements Result<T, E> {
     }
 
     return createResult<U, E>(true, fn(this.value as T), null);
+  }
+
+  /** Transforms only failures and preserves successful values unchanged. */
+  mapError<F>(fn: (error: E) => F): Result<T, F> {
+    if (this.ok) {
+      return createResult<T, F>(true, this.value as T, null);
+    }
+
+    return createResult<T, F>(false, null, fn(this.error as E));
+  }
+
+  /**
+   * Chains another Result-returning operation after a successful value.
+   * Failures skip the mapper and pass the original error through unchanged.
+   */
+  andThen<U, F = E>(fn: (value: T) => Result<U, F>): Result<U, E | F> {
+    if (!this.ok) {
+      return createResult<U, E | F>(false, null, this.error as E);
+    }
+
+    return fn(this.value as T) as Result<U, E | F>;
+  }
+
+  /** Exhaustively handles success and failure branches with one expression. */
+  match<U>(handlers: ResultMatchHandlers<T, E, U>): U {
+    if (this.ok) {
+      return handlers.ok(this.value as T);
+    }
+
+    return handlers.err(this.error as E);
   }
 
   /** Returns the destructuring-friendly tuple representation. */
@@ -144,6 +182,9 @@ export function err<E>(error: E): Err<E> {
 
 export interface ChainResult<T, E> {
   map<U>(fn: (value: T) => Awaitable<U>): ChainResult<U, E>;
+  mapError<F>(fn: (error: E) => Awaitable<F>): ChainResult<T, F>;
+  andThen<U, F = E>(fn: (value: T) => Awaitable<Result<U, F>>): ChainResult<U, E | F>;
+  match<U>(handlers: { ok(value: T): Awaitable<U>; err(error: E): Awaitable<U> }): Promise<U>;
   toTuple(): Promise<ResultTuple<T, E>>;
   toValue(): Promise<T | null>;
   toValueOr(fallback: T): Promise<T>;
@@ -175,6 +216,46 @@ class ChainResultWrapper<T, E> implements ChainResult<T, E> {
         return createResult<U, E>(true, await fn(result.value as T), null);
       }),
     );
+  }
+
+  /** Queues a mapper that runs only for errors. */
+  mapError<F>(fn: (error: E) => Awaitable<F>): ChainResult<T, F> {
+    return new ChainResultWrapper<T, F>(
+      this.#resultPromise.then(async (result): Promise<Result<T, F>> => {
+        if (result.ok) {
+          return createResult<T, F>(true, result.value as T, null);
+        }
+
+        return createResult<T, F>(false, null, await fn(result.error as E));
+      }),
+    );
+  }
+
+  /** Queues a Result-returning mapper that runs only for successful values. */
+  andThen<U, F = E>(fn: (value: T) => Awaitable<Result<U, F>>): ChainResult<U, E | F> {
+    return new ChainResultWrapper<U, E | F>(
+      this.#resultPromise.then(async (result): Promise<Result<U, E | F>> => {
+        if (!result.ok) {
+          return createResult<U, E | F>(false, null, result.error as E);
+        }
+
+        return (await fn(result.value as T)) as Result<U, E | F>;
+      }),
+    );
+  }
+
+  /** Resolves the chain by handling both success and failure branches. */
+  async match<U>(handlers: {
+    ok(value: T): Awaitable<U>;
+    err(error: E): Awaitable<U>;
+  }): Promise<U> {
+    const result = await this.#resultPromise;
+
+    if (result.ok) {
+      return handlers.ok(result.value as T);
+    }
+
+    return handlers.err(result.error as E);
   }
 
   /** Resolves the chain into the same tuple shape as a plain Result. */

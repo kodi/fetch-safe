@@ -7,6 +7,11 @@ import {
   type FetchError,
 } from "../errors.js";
 
+export type FetchSafeFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
+export type RequestHook = (url: string, init: RequestInit) => void | Promise<void>;
+export type ResponseHook = (response: Response) => void | Promise<void>;
+
 /**
  * A minimal schema interface compatible with Zod, Valibot, ArkType, and similar
  * validation libraries. Any object with a `.parse(value) => T` method works.
@@ -18,6 +23,12 @@ export type Schema<T> = {
 export type RequestOptions<T = unknown> = Omit<RequestInit, "method" | "body"> & {
   /** Request timeout in milliseconds. Default: 30_000 */
   timeout?: number;
+  /** Custom fetch implementation, useful for tests, SSR, and edge runtimes. */
+  fetch?: FetchSafeFetch;
+  /** Called immediately before fetch is invoked. */
+  onRequest?: RequestHook;
+  /** Called after a successful HTTP response is received, including non-2xx responses. */
+  onResponse?: ResponseHook;
   /**
    * Optional schema for runtime response validation.
    * When provided, the parsed JSON is validated and `T` is inferred from the schema.
@@ -37,18 +48,34 @@ export type JsonRequestOptions<T = unknown> = RequestOptions<T> & {
 export async function request(
   method: string,
   url: string,
-  options?: RequestInit & { timeout?: number },
+  options?: RequestInit & {
+    timeout?: number;
+    fetch?: FetchSafeFetch;
+    onRequest?: RequestHook;
+    onResponse?: ResponseHook;
+  },
 ): Promise<Result<Response, FetchError>> {
-  const { timeout = 30_000, ...fetchOptions } = options ?? {};
+  const {
+    timeout = 30_000,
+    fetch: fetchImpl = globalThis.fetch.bind(globalThis),
+    onRequest,
+    onResponse,
+    ...fetchOptions
+  } = options ?? {};
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
+  const init: RequestInit = {
+    ...fetchOptions,
+    method,
+    signal: controller.signal,
+  };
 
   try {
-    const response = await fetch(url, {
-      ...fetchOptions,
-      method,
-      signal: controller.signal,
-    });
+    await onRequest?.(url, init);
+
+    const response = await fetchImpl(url, init);
+
+    await onResponse?.(response);
 
     if (!response.ok) {
       const body = await response.text().catch(() => undefined);
@@ -76,8 +103,40 @@ export async function request(
 export async function parseJson<T>(
   response: Response,
   schema?: Schema<T>,
-): Promise<Result<T, ParseError | ValidationError>> {
-  const text = await response.text();
+): Promise<Result<T, ParseError | ValidationError | NetworkError>> {
+  let text: string;
+
+  try {
+    text = await response.text();
+  } catch (cause) {
+    return err(
+      new NetworkError(
+        cause instanceof Error ? cause.message : "Failed to read response body",
+        cause,
+      ),
+    );
+  }
+
+  if (text === "") {
+    if (!schema) {
+      return ok(undefined as T);
+    }
+
+    try {
+      return ok(schema.parse(undefined));
+    } catch (cause) {
+      const issues =
+        cause != null &&
+        typeof cause === "object" &&
+        "issues" in cause &&
+        Array.isArray((cause as { issues: unknown[] }).issues)
+          ? (cause as { issues: unknown[] }).issues
+          : [cause];
+
+      return err(new ValidationError(issues, undefined, cause));
+    }
+  }
+
   let parsed: unknown;
 
   try {

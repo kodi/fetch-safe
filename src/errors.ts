@@ -1,5 +1,6 @@
 /** HTTP error with status code, status text, and optional body. */
 export class HttpError extends Error {
+  readonly kind = "http" as const;
   readonly status: number;
   readonly statusText: string;
   readonly body: string | undefined;
@@ -16,6 +17,7 @@ export class HttpError extends Error {
 
 /** Network-level error (DNS failure, timeout, connection refused, etc.) */
 export class NetworkError extends Error {
+  readonly kind = "network" as const;
   readonly cause: unknown;
 
   /** Wraps fetch, timeout, and body-read failures with their original cause. */
@@ -28,6 +30,7 @@ export class NetworkError extends Error {
 
 /** JSON parse error. */
 export class ParseError extends Error {
+  readonly kind = "parse" as const;
   readonly body: string;
   readonly cause: unknown;
 
@@ -42,6 +45,7 @@ export class ParseError extends Error {
 
 /** Schema validation error — thrown when a parsed response fails schema validation. */
 export class ValidationError extends Error {
+  readonly kind = "validation" as const;
   readonly issues: unknown[];
   readonly body: unknown;
   readonly cause: unknown;
@@ -58,3 +62,27 @@ export class ValidationError extends Error {
 
 /** Union of all possible errors from the HTTP client. */
 export type FetchError = HttpError | NetworkError | ParseError | ValidationError;
+
+/** Narrow an unknown value to an HttpError without relying on instanceof. */
+export function isHttpError(error: unknown): error is HttpError {
+  return error instanceof HttpError || hasKind(error, "http");
+}
+
+/** Narrow an unknown value to a NetworkError without relying on instanceof. */
+export function isNetworkError(error: unknown): error is NetworkError {
+  return error instanceof NetworkError || hasKind(error, "network");
+}
+
+/** Narrow an unknown value to a ParseError without relying on instanceof. */
+export function isParseError(error: unknown): error is ParseError {
+  return error instanceof ParseError || hasKind(error, "parse");
+}
+
+/** Narrow an unknown value to a ValidationError without relying on instanceof. */
+export function isValidationError(error: unknown): error is ValidationError {
+  return error instanceof ValidationError || hasKind(error, "validation");
+}
+
+function hasKind(error: unknown, kind: FetchError["kind"]): boolean {
+  return error != null && typeof error === "object" && "kind" in error && error.kind === kind;
+}
